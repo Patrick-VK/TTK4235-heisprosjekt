@@ -1,0 +1,35 @@
+@startuml
+class main
+main : main();
+main : oppstart(); /'O1, O2, O3, R3'/
+/'While loop, S3'/
+class bestillinger
+bestillinger : int orders[]; /'H1, int pga IC'/
+bestillinger : canTakeOrder(); /'H2'/
+bestillinger : removeLatestOrder(); /'H3'/
+class heis
+heis : int latestFloor; /'current or latest'/
+heis : int direction;
+heis : bool doorOpen;
+heis : void elivo_motorDirection(int direction);
+heis : void doorOrder(); /'D1, D2, S1, S2'/
+heis : void stopOrder(); /'D3, S4, S5, S6, S7'/
+heis : void obstOrder(); /'D4, R1'/
+heis : void setDoor(bool open);
+heis : void checkFloorOrder(); /'H4'/
+heis : void checkButtonOrder(); /'D4, D3'/
+class panel
+panel : bool floorLights[];
+panel : bool elevatorLights[];
+
+/''/
+panel : void setFloorLights(int latestFloor, getPressedButtons());/'L3, L4, L5, L6'/
+panel : void setElevatorLights(bool orders[]);/'L1, L2'/
+panel : bool[] getPressedButtons();
+
+
+
+note right of main
+    oppstart() ligger i main()
+end note
+@enduml
