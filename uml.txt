@@ -1,0 +1,10 @@
+@startuml
+class       oppstart
+class       bestillinger
+class       lys
+class       heisdør
+class       sikkerhet
+class       robusthet
+class       tillegg
+
+@enduml

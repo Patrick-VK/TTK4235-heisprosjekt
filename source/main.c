@@ -31,51 +31,94 @@
 //bool? obs(){}: enklere stopp, mulig det er overflødig med egen funksjon, er bare en iftest om bryer og dør er true
 //etter bryter blir false, kalle timern fra dør, gå videre
 //MÅ ligge under dørene
+int orders[4] = {0, 0, 0, 0};
+int orderChanged = 1;
+
+void floorLights(){
+    if (elevio_floorSensor() >= 0){
+            elevio_floorIndicator(elevio_floorSensor());
+    }
+}
+
+void panelLights(){ // mulig denne kan endres og kalles ved bestilling
+    if (orderChanged){ 
+        for (int i = 0; i < N_FLOORS; i++){
+            if (orders[i]){
+                elevio_buttonLamp(i, 2, 1);
+            }else {
+                elevio_buttonLamp(i, 2, 0);
+            }
+        }
+        orderChanged = 0;
+    }
+}
+
+int ordersEmpty(){
+    for(int i = 0; i < N_FLOORS; i++){
+        if(orders[i]){
+            return 0;
+        }
+    } return 1;
+}
+
 int main(){
     elevio_init();
-    
     printf("=== Example Program ===\n");
     printf("Press the stop button on the elevator panel to exit\n");
-
-    elevio_motorDirection(DIRN_UP);
-    //int oppstart_bool = false
+    elevio_motorDirection(DIRN_DOWN);
+    int oppstart_bool = 0;
 
     while(1){
-        //if (!oppstart_bool)
+        if (!oppstart_bool){
+            panelLights(); //mulig feilkilde
+            floorLights();
+            if(elevio_floorSensor() == 0){
+                oppstart_bool = 1;
+                elevio_motorDirection(DIRN_STOP);
+            }
+        }
+        else {
+            //mulig btnlirDirection(DIRN_UP);
+            //if(floor == 0ghts()?
+            int floor = elevio_floorSensor(); //sjekke verdier her  0-3 eller 1-4?
+            floorLights(); //etasjelys
+            panelLights(); //panellys
+            
+            //muig dette gjøres om til funksjon
+            if (ordersEmpty()){
+                elevio_motorDirection(DIRN_STOP);
+            }
+            else {
+                elevio_motorDirection(DIRN_UP);
+            }
+            //if(floor == 0){
+            //    elevio_motorDirection(DIRN_UP);
+            //}
+
+            //if(floor == N_FLOORS-1){
+            //    elevio_motorDirection(DIRN_DOWN);
+            //}
+
+            //sjekker at knappene lyser når de blir trykket på, mulig en liknende variant for å håndtere bestillinger
+            //for(int f = 0; f < N_FLOORS; f++){
+            //    for(int b = 0; b < N_BUTTONS; b++){
+            //        int btnPressed = elevio_callButton(f, b);
+            //        elevio_buttonLamp(f, b, btnPressed);
+            //    }
+            //}
+
+            if(elevio_obstruction()){
+                elevio_stopLamp(1);
+            } else {
+                elevio_stopLamp(0);
+            }
+        
+        }
         //oppstartskode, typ send ned til 1. etg
         //sett retning, sjekk etg, ikke bruk dører eller obs (tror jeg), 
         //husk at heisknappene må funke, lage btnlights()?
 
-        //else{}, resten av koden
-        //mulig btnlights()?
-        //legge inn stoppknapp
-        int floor = elevio_floorSensor(); //sjekke verdier her  0-3 eller 1-4?
-        if (floor >= 0){
-            elevio_floorIndicator(floor);
-        }
-
-        if(floor == 0){
-            elevio_motorDirection(DIRN_UP);
-        }
-
-        if(floor == N_FLOORS-1){
-            elevio_motorDirection(DIRN_DOWN);
-        }
-
-        //sjekker at knappene lyser når de blir trykket på, mulig en liknende variant for å håndtere bestillinger
-        for(int f = 0; f < N_FLOORS; f++){
-            for(int b = 0; b < N_BUTTONS; b++){
-                int btnPressed = elevio_callButton(f, b);
-                elevio_buttonLamp(f, b, btnPressed);
-            }
-        }
-
-        if(elevio_obstruction()){
-            elevio_stopLamp(1);
-        } else {
-            elevio_stopLamp(0);
-        }
-        
+       
         if(elevio_stopButton()){
             elevio_motorDirection(DIRN_STOP);
             break;
