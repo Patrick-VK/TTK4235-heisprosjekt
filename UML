@@ -23,7 +23,7 @@ panel : bool floorLights[];
 panel : bool elevatorLights[];
 
 /''/
-panel : void setFloorLights(int latestFloor, getPressedButtons());/'L3, L4, L5, L6'/
+panel : void setPanelLights(int latestFloor, getPressedButtons());/'L3, L4, L5, L6'/
 panel : void setElevatorLights(bool orders[]);/'L1, L2'/
 panel : bool[] getPressedButtons();
 
