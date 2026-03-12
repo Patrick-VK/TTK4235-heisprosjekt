@@ -1,0 +1,26 @@
+@startuml
+
+
+[*] --> kalibrering
+kalibrering : forflytter heis til en av etasjene
+kalibrering ---> stop
+
+
+opp: do / heisen forflyttes opp
+opp -> stop : etasje er bunn | ordre er 0
+
+stop: do / heisen står stille & dør er stengt
+stop --> opp : ordre over | etajse er bunn
+stop --> ned : ordre under | etasje er topp
+stop --> åpen : ved etasje [nåværende etasje er ordre] / deaktiver ordre
+
+ned: do / heisen forflyttes ned
+ned -> stop : etasje er bunn | ordre er 0
+
+åpen: do / døren er åpen
+åpen --> stop : 3 sek
+
+
+
+
+@enduml

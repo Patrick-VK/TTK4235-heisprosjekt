@@ -1,0 +1,16 @@
+Arkitektur design:
+1. Use case uten diagram
+3. Sekvensdiagram
+4. Kommunikasjonsdiagram
+Moduldesign:
+1. Tilstandsdiagram
+2. Klassediagram
+Implementasjon:
+1. Skrive kode med henhold til moduldesign
+2. Eventuelt endre moduldesign og implementere på nytt
+Enhetstesting:
+1. Teste enkeltenhetene
+Integrasjonstesting:
+2. Teste hele systemet
+FAT:
+siste dag

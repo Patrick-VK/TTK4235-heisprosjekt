@@ -40,7 +40,7 @@ int heading = 1; //samme som orders, settes til 1 fordi heisen skal være i 1. e
 //kommer til å kunne fjerne true fra lys når bestillinger utføres
 
 
-int ordersEmpty(){
+int ordersEmpty(){ //bestillinger
     for(int i = 0; i < N_FLOORS; i++){
         if(orders[i][0]){
             return 0;
@@ -48,13 +48,13 @@ int ordersEmpty(){
     } return 1;
 }
 
-void clearOrderRow(int row){
+void clearOrderRow(int row){ //bestillinger
     orders[row][0] = 0;
     orders[row][1] = 0;
     orderChanged = 1;
 }
 
-void settBestillinger(){ //tilsvarer getPressedButtons() i UML, bytte om til funksjon for å hente alle pressed buttons? 
+void settBestillinger(){ //tilsvarer getPressedButtons() i UML, bytte om til funksjon for å hente alle pressed buttons? //bestillinger
     //sjekker panelknapper, må muligens skrives om
     for (int i = 0; i < N_FLOORS; i++){ 
         for (int b = 0; b < N_BUTTONS; b++){
@@ -76,7 +76,7 @@ void settBestillinger(){ //tilsvarer getPressedButtons() i UML, bytte om til fun
     }
 }
 
-void settHeading(int etg){
+void settHeading(int etg){ //heis kontroll
     int ordersAbove = 0;
     int ordersBelow = 0;
     if (etg == 3){

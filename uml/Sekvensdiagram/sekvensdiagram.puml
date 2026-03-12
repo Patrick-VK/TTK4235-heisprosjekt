@@ -1,0 +1,14 @@
+@startuml
+
+/'https://plantuml.com/sequence-diagram'/
+aktør -> panel
+activate panel
+
+panel -> bestillinger
+bestillinger -> heis
+
+panel -> aktør
+deactivate panel
+
+
+@enduml
