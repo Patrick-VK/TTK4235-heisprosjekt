@@ -27,10 +27,12 @@
 //MÅ ligge under dørene
 //
 
-int orders[4][2] = {{0, 0}, {0, 0}, {0, 0}, {0, 0}}; //første i lista er om heisen skal stoppe, andre er om retningen har noe å si - knapper på panel utenfor vs inni
-//-1 er ned, 0 er likegyldig, 1 er opp
+int orders[4][4] = {{0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}}; //første i lista er om heisen skal stoppe, andre er om retningen har noe å si - knapper på panel utenfor vs inni
+//orders[i][1] er begge, orders[i][2] er opp, orders[i][3] er ned 
 int orderChanged = 1;
 int heading = 1; //samme som orders, settes til 1 fordi heisen skal være i 1. etg ved oppstart
+int doorOpen = 0;
+int lastFloor = 0;
 
 //må sannsynligvis ha tilgang på lysinputs, bruke de til å toggle lista
 //none bestillinger(){}:
@@ -40,43 +42,67 @@ int heading = 1; //samme som orders, settes til 1 fordi heisen skal være i 1. e
 //kommer til å kunne fjerne true fra lys når bestillinger utføres
 
 
-int ordersEmpty(){ //bestillinger
+int ordersEmpty(){ //sjekker om ordrene er tomme
     for(int i = 0; i < N_FLOORS; i++){
-        if(orders[i][0]){
+        if((orders[i][0])){
             return 0;
         }
     } return 1;
 }
 
-void clearOrderRow(int row){ //bestillinger
+void clearOrderRow(int row){ //tømmer en rad
     orders[row][0] = 0;
     orders[row][1] = 0;
+    orders[row][2] = 0;
+    orders[row][3] = 0;
     orderChanged = 1;
 }
 
-void settBestillinger(){ //tilsvarer getPressedButtons() i UML, bytte om til funksjon for å hente alle pressed buttons? //bestillinger
+void panelLights(){ // mulig denne kan endres og kalles ved bestilling
+    if (orderChanged){ 
+        for (int i = 0; i < N_FLOORS; i++){
+            for (int b = 0; b < N_BUTTONS; b++){
+                if (orders[i][0]){
+                    if ((orders[i][1] == 1) & (b == 2)){
+                        elevio_buttonLamp(i, b, 1);
+                    } else if ((orders[i][3] == 1) & (b == 1)){
+                        elevio_buttonLamp(i, b, 1);
+                    } else if ((orders[i][2] == 1) & (b == 0)){
+                        elevio_buttonLamp(i, b, 1);
+                    }   
+                } else {
+                    elevio_buttonLamp(i, b, 0);
+                }
+            }
+        }
+        orderChanged = 0;
+    }
+}
+
+void settBestillinger(){ //tilsvarer getPressedButtons() i UML, bytte om til funksjon for å hente alle pressed buttons? 
     //sjekker panelknapper, må muligens skrives om
     for (int i = 0; i < N_FLOORS; i++){ 
         for (int b = 0; b < N_BUTTONS; b++){
             int btnPressed = elevio_callButton(i, b);
+            //lite elegant
             if (btnPressed & b == 2){ //sjekker knappene inni heisen
-                orders[i][0] = 1;
-                orders[i][1] = 0;
-                orderChanged = 1;
-            } else if (btnPressed & b == 0){ //sjekker knappene på vei opp
                 orders[i][0] = 1;
                 orders[i][1] = 1;
                 orderChanged = 1;
+            } else if (btnPressed & b == 0){ //sjekker knappene på vei opp
+                orders[i][0] = 1;
+                orders[i][2] = 1;
+                orderChanged = 1;
             } else if (btnPressed & b == 1){ //sjekker knappene på vei ned
                 orders[i][0] = 1;
-                orders[i][1] = -1;
+                orders[i][3] = 1;
                 orderChanged = 1;
             }
         }         
     }
 }
 
-void settHeading(int etg){ //heis kontroll
+void settHeading(int etg){
     int ordersAbove = 0;
     int ordersBelow = 0;
     if (etg == 3){
@@ -116,17 +142,127 @@ void bevegelse(){ //kutte ut?
     } else{
         elevio_motorDirection(heading);
     }
+    doorOpen = 0; //ER DENNE NØDVENDIG???
 }
 
-void stopInFloor(int etg){
-    if ((orders[etg][0] == 1) & ((orders[etg][1] == 0) || (orders[etg][1] == heading))){
-        elevio_doorOpenLamp(1);
-        time_t start = time(NULL);
-        clearOrderRow(etg);
-        elevio_motorDirection(DIRN_STOP);
-        while (time(NULL) - start < 3);
-        elevio_doorOpenLamp(0);
+void openDoor(){
+    doorOpen = 1;
+    elevio_doorOpenLamp(1);
+}
+
+void closeDoor(){
+    doorOpen = 0;
+    elevio_doorOpenLamp(0);
+}
+
+
+void waitDoor(){
+    time_t start = time(NULL);
+    elevio_motorDirection(DIRN_STOP);
+    while (time(NULL) - start < 3){
+        settBestillinger();
+        panelLights();
+        //stoppknapp(-1);
     }
+}
+
+void obstruksjon(){
+    int obstruksjon = 0;
+    elevio_stopLamp(0);
+    while((elevio_obstruction()) & (doorOpen == 1)){
+        obstruksjon = 1;
+        openDoor();
+    }
+    if(obstruksjon){
+        waitDoor();
+        closeDoor();
+    }
+    obstruksjon = 0;
+    
+    
+}
+
+
+void stoppKnapp(int etg){
+    
+    if (elevio_stopButton()){
+        elevio_stopLamp(1);
+        elevio_motorDirection(DIRN_STOP);
+        heading = 0;
+        for (int i = 0; i < N_FLOORS; i++){
+            clearOrderRow(i);
+        }
+        panelLights();
+        if (etg > -1){
+            openDoor();
+            while (elevio_stopButton()){
+                elevio_motorDirection(DIRN_STOP);
+            }
+            time_t start = time(NULL);
+            elevio_motorDirection(DIRN_STOP);
+            while (time(NULL) - start < 3){
+                obstruksjon();
+            }
+            closeDoor();
+            }
+        else {
+            while (elevio_stopButton()){
+                elevio_motorDirection(DIRN_STOP);
+            }
+        }
+        
+    } else {
+        elevio_stopLamp(0);
+    }
+    
+    
+    
+}
+
+
+void stopInFloor(int etg){
+    int orderAmount = 0;
+    for (int i = 0; i < N_FLOORS; i++){
+        if (orders[i][0]){
+            orderAmount += 1;
+        }
+    }
+    if (orderAmount == 1){
+        if (orders[etg][0] == 1){
+            openDoor();
+            waitDoor();
+            obstruksjon();
+            closeDoor();
+            clearOrderRow(etg);
+        }
+        
+    }
+    else if (heading == -1){
+        if ((orders[etg][0] == 1) & ((orders[etg][1] == 1) || (orders[etg][3] == 1) )){
+            openDoor();
+            waitDoor();
+            obstruksjon();
+            closeDoor();
+            clearOrderRow(etg);
+        }
+    }
+    else if (heading == 1){
+        if ((orders[etg][0] == 1) & ((orders[etg][1] == 1) || (orders[etg][2] == 1))){
+            openDoor();
+            waitDoor();
+            obstruksjon();
+            closeDoor();
+            clearOrderRow(etg);
+        }
+    }
+    // if ((orders[etg][0] == 1) & ((orders[etg][1] == 0) || (orders[etg][1] == heading))){
+    //     elevio_doorOpenLamp(1);
+    //     time_t start = time(NULL);
+    //     clearOrderRow(etg);
+    //     elevio_motorDirection(DIRN_STOP);
+    //     while (time(NULL) - start < 3);
+    //     elevio_doorOpenLamp(0);
+    // }
 }
 
 void floorLights(){ //Bytte til setPanelLights() ?
@@ -135,36 +271,24 @@ void floorLights(){ //Bytte til setPanelLights() ?
     }
 }
 
-void panelLights(){ // mulig denne kan endres og kalles ved bestilling
-    if (orderChanged){ 
-        for (int i = 0; i < N_FLOORS; i++){
-            for (int b = 0; b < N_BUTTONS; b++){
-                if (orders[i][0]){
-                    if ((orders[i][1] == 0) & (b == 2)){
-                        elevio_buttonLamp(i, b, 1);
-                    } else if ((orders[i][1] == -1) & (b == 1)){
-                        elevio_buttonLamp(i, b, 1);
-                    } else if ((orders[i][1] == 1) & (b == 0)){
-                        elevio_buttonLamp(i, b, 1);
-                    }   
-                } else {
-                    elevio_buttonLamp(i, b, 0);
-                }
-            }
-        }
-        orderChanged = 0;
-    }
-}
+
+
 
 
 int main(){
+    //Initialisering
     elevio_init();
+
+
     //printf("=== Example Program ===\n");
     //(printf("Press the stop button on the elevator panel to exit\n");
+
+    //Oppstart
     elevio_motorDirection(DIRN_DOWN);
     int oppstart_bool = 0;
 
     while(1){
+
         if (!oppstart_bool){
             panelLights(); //mulig feilkilde
             floorLights();
@@ -173,19 +297,23 @@ int main(){
                 elevio_motorDirection(DIRN_STOP);
             }
         }
+        //Program-loop
         else {
             //mulig btnlirDirection(DIRN_UP);
             //if(floor == 0ghts()?
             int floor = elevio_floorSensor(); //sjekke verdier her, 0-3 eller 1-4?
     
             settBestillinger();
+            settHeading(lastFloor);
             bevegelse();
-            if (floor > -1){
-                settHeading(floor);
-                stopInFloor(floor);
-            }
             floorLights(); //etasjelys
             panelLights(); //panellys
+            stoppKnapp(floor);
+            if (floor > -1){
+                stopInFloor(floor);
+                obstruksjon();
+                lastFloor = floor;
+            }
             
             
             //muig dette gjøres om til funksjon
@@ -211,12 +339,13 @@ int main(){
             //        elevio_buttonLamp(f, b, btnPressed);
             //    }
             //}
-
-            if(elevio_obstruction()){
-                elevio_stopLamp(1);
-            } else {
-                elevio_stopLamp(0);
-            }
+            
+           
+            // if(elevio_obstruction()){
+            //     elevio_stopLamp(1);
+            // } else {
+            //     elevio_stopLamp(0);
+            // }
         
         }
         //oppstartskode, typ send ned til 1. etg
@@ -224,13 +353,25 @@ int main(){
         //husk at heisknappene må funke, lage btnlights()?
 
        
-        if(elevio_stopButton()){
-            elevio_motorDirection(DIRN_STOP);
-            break;
-        }
+        // if(elevio_stopButton()){
+        //     elevio_motorDirection(DIRN_STOP);
+        //     break;
+        // }
         
         nanosleep(&(struct timespec){0, 20*1000*1000}, NULL);
     }
 
     return 0;
 }
+
+
+
+
+
+/*
+Forslag:
+lage oppsart til en egen funksjon
+Lage program-loop eneklt i main()
+
+
+*/
